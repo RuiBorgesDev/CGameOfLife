@@ -149,7 +149,9 @@ int main(int argc, char** argv){
         return(-1);
     }
 	if(!isdigit(*argv[1])) return(-1);
-    sleepTime = atoi(argv[2]);
+	if(argc == 3 && isdigit(*argv[2])){
+		sleepTime = atoi(argv[2]);
+	}
     if(sleepTime < 0 || sleepTime > 10000) return(-1);
     #ifdef __unix__
     sleepTime *= 1000;
