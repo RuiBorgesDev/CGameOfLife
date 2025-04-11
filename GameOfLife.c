@@ -11,6 +11,7 @@
 #include <time.h>
 #include <limits.h>
 #include <ctype.h>
+#include <getopt.h>
 
 #define DEAD '.'
 #define ALIVE 'o'
@@ -25,7 +26,9 @@
 #define LWSS 7
 #define RANDOM 8
 
-#define NITERS 250
+#define DEFAULT_SLEEP_TIME 100
+#define DEFAULT_MAX_ITER 250
+#define DEFAULT_PATTERN 8
 
 unsigned int GLOBAL_nlines;
 unsigned int GLOBAL_ncolumns;
@@ -142,51 +145,96 @@ void gridShow(char* grid){
 	}
 }
 
-int main(int argc, char** argv){
-	unsigned int pattern, niters = 0, sleepTime = 0;
-	if(argc != 2 && argc != 3){
-        printf("\nUsage:\t%s <pattern> <sleepTime>\n\n\tpattern:\t0 - BLINKER\n\t\t\t1 - TOAD\n\t\t\t2 - BEACON\n\t\t\t3 - PULSAR\n\t\t\t4 - PENTADECATHLON\n\t\t\t5 - GLIDER\n\t\t\t6 - GOSPER GLIDER GUN\n\t\t\t7 - LWSS\n\t\t\t8 - RANDOM\n\n\tsleepTime (optional):\tvalue in ms between 0 and 10000\n", argv[0]);
-        return(-1);
+int main(int argc, char **argv) {
+    unsigned int pattern = DEFAULT_PATTERN;
+    unsigned int sleepTime = DEFAULT_SLEEP_TIME;
+    unsigned int maxNumIters = DEFAULT_MAX_ITER;
+    
+    int opt;
+    int option_index = 0;
+    
+    static struct option long_options[] = {
+        {"pattern", required_argument, 0, 'p'},
+        {"sleeptime", required_argument, 0, 's'},
+        {"maxiterations", required_argument, 0, 'm'},
+        {0, 0, 0, 0}
+    };
+    
+    while ((opt = getopt_long(argc, argv, "p:s:m:", long_options, &option_index)) != -1) {
+        switch (opt) {
+            case 'p':
+                pattern = atoi(optarg);
+                if (pattern > 8) {
+                    fprintf(stderr, "Error: Pattern must be between 0 and 8.\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 's':
+                sleepTime = atoi(optarg);
+                if (sleepTime > 10000) {
+                    fprintf(stderr, "Error: Sleeptime must be between 0 and 10000 milliseconds.\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'm':
+                maxNumIters = atoi(optarg);
+                if (maxNumIters == 0 || maxNumIters > 100000) {
+                    fprintf(stderr, "Error: Maximum iterations must be between 1 and 100000.\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            default:
+                fprintf(stderr, "Usage: %s [--pattern <pattern>] [--sleeptime <ms>] [--maxiterations <n>]\n", argv[0]);
+                exit(EXIT_FAILURE);
+        }
     }
-	if(!isdigit(*argv[1])) return(-1);
-	if(argc == 3 && isdigit(*argv[2])){
-		sleepTime = atoi(argv[2]);
-	}
-    if(sleepTime < 0 || sleepTime > 10000) return(-1);
+    
+    if (optind < argc) {
+        fprintf(stderr, "Error: Unexpected argument: %s\n", argv[optind]);
+        fprintf(stderr, "Usage: %s [--pattern <pattern>] [--sleeptime <ms>] [--maxiterations <n>]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
     #ifdef __unix__
-    sleepTime *= 1000;
+        sleepTime *= 1000;
     #endif
-	pattern = atoi(argv[1]);
-	if(pattern > 8 || pattern < 0) return(-1);
 
-	defineDimensions(pattern);
-	GLOBAL_grid_A = (char*)malloc(GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char));
-	GLOBAL_grid_B = (char*)malloc(GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char));
-	gridInit(GLOBAL_grid_A, pattern);
-
-	while(niters++ < NITERS){
+    defineDimensions(pattern);
+    GLOBAL_grid_A = (char*)malloc(GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char));
+    GLOBAL_grid_B = (char*)malloc(GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char));
+    if (!GLOBAL_grid_A || !GLOBAL_grid_B) {
+        fprintf(stderr, "Error: Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    gridInit(GLOBAL_grid_A, pattern);
+    
+    unsigned int niter = 0;
+    while (niter++ < maxNumIters) {
         #ifdef _WIN32
-        Sleep(sleepTime);
-		system("cls");
+            Sleep(sleepTime);
+            system("cls");
         #endif
         #ifdef __unix__
-        usleep(sleepTime);
-        system("clear");
+            usleep(sleepTime);
+            system("clear");
         #endif
-		gridShow(GLOBAL_grid_A);
-		gridEvolve(GLOBAL_grid_A, GLOBAL_grid_B);
-		if(gridCompare(GLOBAL_grid_A, GLOBAL_grid_B)){
-			char* temp = GLOBAL_grid_A;
-			GLOBAL_grid_A = GLOBAL_grid_B;
-			GLOBAL_grid_B = temp;
-		}else break;
-	}
-
-	if(niters - 1 == NITERS){
+        
+        gridShow(GLOBAL_grid_A);
+        gridEvolve(GLOBAL_grid_A, GLOBAL_grid_B);
+        if (gridCompare(GLOBAL_grid_A, GLOBAL_grid_B)) {
+            char *temp = GLOBAL_grid_A;
+            GLOBAL_grid_A = GLOBAL_grid_B;
+            GLOBAL_grid_B = temp;
+        } else {
+            break;
+        }
+    }
+    
+    if (niter - 1 == maxNumIters) {
         printf("\nFINISHED all iterations\n");
     }
-
-	free(GLOBAL_grid_A);
-	free(GLOBAL_grid_B);
-	return(0);
+    
+    free(GLOBAL_grid_A);
+    free(GLOBAL_grid_B);
+    return 0;
 }

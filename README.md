@@ -19,13 +19,13 @@ gcc GameOfLife.c -o GameOfLife
 
 ## Usage
 
-To run the program, execute the compiled executable with the desired pattern and, optionally, a sleep time for visualization. Here's the general syntax:
+To run the program, execute the compiled executable and optionally pass command‑line arguments to customize the run.
 
 ```bash
-./GameOfLife <pattern> <sleepTime>
+./GameOfLife [--pattern <pattern>] [--sleeptime <ms>] [--maxiterations <n>]
 ```
 
-- `<pattern>`: Select a pattern for the initial configuration.
+- `--pattern (-p) <0–8>` (optional): Select a pattern for the initial configuration. Default is 8.
   - 0: BLINKER
   - 1: TOAD
   - 2: BEACON
@@ -36,17 +36,19 @@ To run the program, execute the compiled executable with the desired pattern and
   - 7: LWSS
   - 8: RANDOM
 
-- `<sleepTime>` (optional): Specify the sleep time between iterations in milliseconds (0 to 10000). Default is 0.
+- `--sleeptime (-s) <0–10000>` (optional): Specify the sleep time between iterations in milliseconds. Default is 100.
+
+- `--maxiterations (-m) <1–100000>` (optional): Specify the maximum number of iterations for the simulation. Default is 250.
 
 ## Examples
 
 ```bash
-./GameOfLife 5 100   # Run with GLIDER pattern with 100ms of sleep time between each iteration
-./GameOfLife 8       # Run with RANDOM pattern with the default sleep time
+./GameOfLife --pattern 5 --maxiterations 5       # GLIDER pattern with 5 max iterations
+./GameOfLife --sleeptime 50                      # RANDOM pattern with 50ms delay
 ```
 
 ## Notes
 
-- The program will display the evolving state of the Game of Life grid, updating for a predefined number of iterations (NITERS) or until the grid stabilizes.
+- The program will display the evolving state of the Game of Life grid, updating for a predefined number of iterations or until the grid stabilizes.
 
 - Press Ctrl+C to terminate the simulation at any time.
