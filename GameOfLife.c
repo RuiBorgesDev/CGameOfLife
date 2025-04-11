@@ -1,5 +1,7 @@
 #ifdef _WIN32
 #include <windows.h>
+HANDLE hConsole;
+COORD cursorPos = {0, 0};
 #endif
 
 #ifdef __unix__
@@ -12,10 +14,10 @@
 #include <limits.h>
 #include <ctype.h>
 #include <getopt.h>
+#include <string.h>
 
 #define DEAD '.'
 #define ALIVE 'o'
-
 #define BLINKER 0
 #define TOAD 1
 #define BEACON 2
@@ -29,60 +31,67 @@
 #define DEFAULT_SLEEP_TIME 100
 #define DEFAULT_MAX_ITER 250
 #define DEFAULT_PATTERN 8
+#define DEFAULT_DENSITY 2
+#define DEFAULT_LOOPWINDOW 5
 
-unsigned int GLOBAL_nlines;
-unsigned int GLOBAL_ncolumns;
+unsigned int GLOBAL_nlines = 0;
+unsigned int GLOBAL_ncolumns = 0;
+unsigned int GLOBAL_loopwindow = DEFAULT_LOOPWINDOW;
 
-char* GLOBAL_grid_A = NULL;
-char* GLOBAL_grid_B = NULL;
+char **history = NULL;
 
-void gridInit(char* grid, int pattern){
-	for(int i = 0; i < GLOBAL_ncolumns * GLOBAL_nlines; i++){
-		grid[i] = DEAD;
-    }
-	switch(pattern){
-		case BLINKER:
-			grid[11] = grid[12] = grid[13] = ALIVE;
-		break;
-		case TOAD:
-			grid[14] = grid[15] = grid[16] = grid[19] = grid[20] = grid[21] = ALIVE;
-		break;
-		case BEACON:
-			grid[7] = grid[8] = grid[13] = grid[22] = grid[27] = grid[28] = ALIVE;
-		break;
-		case PULSAR:
-			grid[22] = grid[28] = grid[39] = grid[45] = grid[56] = grid[57] = grid[61] = grid[62] = grid[86] = grid[87] = grid[88] = grid[91] = grid[92] = grid[94] = grid[95] = grid[98] = grid[99] = grid[100] = grid[105] = grid[107] = grid[109] = grid[111] = grid[113] = grid[115] = grid[124] = grid[125] = grid[129] = grid[130] = grid[158] = grid[159] = grid[163] = grid[164] = grid[173] = grid[175] = grid[177] = grid[179] = grid[181] = grid[183] = grid[188] = grid[189] = grid[190] = grid[193] = grid[194] = grid[196] = grid[197] = grid[200] = grid[201] = grid[202] = grid[226] = grid[227] = grid[231] = grid[232] = grid[243] = grid[249] = grid[260] = grid[266] = ALIVE;
-		break;
-		case PENTADECATHLON:
-			grid[37] = grid[38] = grid[39] = grid[49] = grid[60] = grid[70] = grid[71] = grid[72] = grid[92] = grid[93] = grid[94] = grid[103] = grid[104] = grid[105] = grid[125] = grid[126] = grid[127] = grid[137] = grid[148] = grid[158] = grid[159] = grid[160] = ALIVE;
-		break;
-        case GLIDER:
-			grid[1] = grid[17] = grid[30] = grid[31] = grid[32] = ALIVE;
-		break;
-        case GOSPER_GLIDER_GUN:
-			grid[63] = grid[99] = grid[101] = grid[127] = grid[128] = grid[135] = grid[136] = grid[149] = grid[150] = grid[164] = grid[168] = grid[173] = grid[174] = grid[187] = grid[188] = grid[191] = grid[192] = grid[201] = grid[207] = grid[211] = grid[212] = grid[229] = grid[230] = grid[239] = grid[243] = grid[245] = grid[246] = grid[251] = grid[253] = grid[277] = grid[283] = grid[291] = grid[316] = grid[320] = grid[355] = grid[356] = ALIVE;
-		break;
-        case LWSS:
-			grid[31] = grid[34] = grid[65] = grid[91] = grid[95] = grid[122] = grid[123] = grid[124] = grid[125] = ALIVE;
-		break;
-		case RANDOM:
-			srand((unsigned int)time(NULL));
-			for(int i = 0; i < GLOBAL_ncolumns * GLOBAL_nlines; i++){
-				if(rand() % 10 <= 1){
-                    grid[i] = ALIVE;
-                }
-            }
-        break;
-	}
-}
-
-int gridCompare(char* gridA, char* gridB){
-	for(int i = 0; i < GLOBAL_ncolumns * GLOBAL_nlines; i++){
-		if(gridA[i] != gridB[i]){
-            return(1);
+void gridInit(char **history, int pattern, int density){
+    for (int g = 0; g < GLOBAL_loopwindow; g++){
+        for (int i = 0; i < GLOBAL_ncolumns * GLOBAL_nlines; i++){
+            history[g][i] = DEAD;
         }
     }
-	return(0);
+    switch (pattern){
+    case BLINKER:
+        history[1][11] = history[1][12] = history[1][13] = ALIVE;
+        break;
+    case TOAD:
+        history[1][14] = history[1][15] = history[1][16] = history[1][19] = history[1][20] = history[1][21] = ALIVE;
+        break;
+    case BEACON:
+        history[1][7] = history[1][8] = history[1][13] = history[1][22] = history[1][27] = history[1][28] = ALIVE;
+        break;
+    case PULSAR:
+        history[1][22] = history[1][28] = history[1][39] = history[1][45] = history[1][56] = history[1][57] = history[1][61] = history[1][62] = history[1][86] = history[1][87] = history[1][88] = history[1][91] = history[1][92] = history[1][94] = history[1][95] = history[1][98] = history[1][99] = history[1][100] = history[1][105] = history[1][107] = history[1][109] = history[1][111] = history[1][113] = history[1][115] = history[1][124] = history[1][125] = history[1][129] = history[1][130] = history[1][158] = history[1][159] = history[1][163] = history[1][164] = history[1][173] = history[1][175] = history[1][177] = history[1][179] = history[1][181] = history[1][183] = history[1][188] = history[1][189] = history[1][190] = history[1][193] = history[1][194] = history[1][196] = history[1][197] = history[1][200] = history[1][201] = history[1][202] = history[1][226] = history[1][227] = history[1][231] = history[1][232] = history[1][243] = history[1][249] = history[1][260] = history[1][266] = ALIVE;
+        break;
+    case PENTADECATHLON:
+        history[1][37] = history[1][38] = history[1][39] = history[1][49] = history[1][60] = history[1][70] = history[1][71] = history[1][72] = history[1][92] = history[1][93] = history[1][94] = history[1][103] = history[1][104] = history[1][105] = history[1][125] = history[1][126] = history[1][127] = history[1][137] = history[1][148] = history[1][158] = history[1][159] = history[1][160] = ALIVE;
+        break;
+    case GLIDER:
+        history[1][1] = history[1][17] = history[1][30] = history[1][31] = history[1][32] = ALIVE;
+        break;
+    case GOSPER_GLIDER_GUN:
+        history[1][63] = history[1][99] = history[1][101] = history[1][127] = history[1][128] = history[1][135] = history[1][136] = history[1][149] = history[1][150] = history[1][164] = history[1][168] = history[1][173] = history[1][174] = history[1][187] = history[1][188] = history[1][191] = history[1][192] = history[1][201] = history[1][207] = history[1][211] = history[1][212] = history[1][229] = history[1][230] = history[1][239] = history[1][243] = history[1][245] = history[1][246] = history[1][251] = history[1][253] = history[1][277] = history[1][283] = history[1][291] = history[1][316] = history[1][320] = history[1][355] = history[1][356] = ALIVE;
+        break;
+    case LWSS:
+        history[1][31] = history[1][34] = history[1][65] = history[1][91] = history[1][95] = history[1][122] = history[1][123] = history[1][124] = history[1][125] = ALIVE;
+        break;
+    case RANDOM:
+        for (int i = 0; i < GLOBAL_ncolumns * GLOBAL_nlines; i++){
+            if (rand() % 10 <= density - 1){
+                history[1][i] = ALIVE;
+            }
+        }
+        break;
+    }
+}
+
+int gridCompare(char **history){
+    size_t gridSize = GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char);
+    if (gridSize == 0){
+        return 0;
+    }
+    for (int i = 1; i < GLOBAL_loopwindow; i++){
+        if (memcmp(history[0], history[i], gridSize) == 0){
+            return i;
+        }
+    }
+    return 0;
 }
 
 void gridEvolve(char* current, char* next){
@@ -105,136 +114,213 @@ void gridEvolve(char* current, char* next){
 }
 
 void defineDimensions(int pattern){
-	switch(pattern){
-		case BLINKER:
-			GLOBAL_nlines = GLOBAL_ncolumns = 5;
-		break;
-		case TOAD:
-		case BEACON:
-			GLOBAL_nlines = GLOBAL_ncolumns = 6;
-		break;
-		case PULSAR:
-			GLOBAL_nlines = GLOBAL_ncolumns = 17;
-		break;
-		case PENTADECATHLON:
-			GLOBAL_nlines = 18;
-			GLOBAL_ncolumns = 11;
-		break;
+    if (pattern == RANDOM){
+        GLOBAL_nlines = (GLOBAL_nlines == 0) ? rand() % 16 + 5 : GLOBAL_nlines;
+        GLOBAL_ncolumns = (GLOBAL_ncolumns == 0) ? rand() % 31 + 10 : GLOBAL_ncolumns;
+    }
+    else{
+        switch (pattern){
+        case BLINKER:
+            GLOBAL_nlines = GLOBAL_ncolumns = 5;
+            break;
+        case TOAD:
+        case BEACON:
+            GLOBAL_nlines = GLOBAL_ncolumns = 6;
+            break;
+        case PULSAR:
+            GLOBAL_nlines = GLOBAL_ncolumns = 17;
+            break;
+        case PENTADECATHLON:
+            GLOBAL_nlines = 18;
+            GLOBAL_ncolumns = 11;
+            break;
         case GLIDER:
-			GLOBAL_nlines = GLOBAL_ncolumns = 15;
-		break;
+            GLOBAL_nlines = GLOBAL_ncolumns = 15;
+            break;
         case GOSPER_GLIDER_GUN:
-			GLOBAL_nlines = 20;
+            GLOBAL_nlines = 20;
             GLOBAL_ncolumns = 38;
-		break;
+            break;
         case LWSS:
-			GLOBAL_nlines = 7;
+            GLOBAL_nlines = 7;
             GLOBAL_ncolumns = 30;
-		break;
-		case RANDOM:
-            srand((unsigned int)time(NULL));
-			GLOBAL_nlines = rand() % 16 + 5;
-			GLOBAL_ncolumns = rand() % 31 + 10;
-        break;
-	}
+            break;
+        }
+    }
 }
 
-void gridShow(char* grid){
-	for(int i = 0; i < GLOBAL_nlines; i++){
-		printf("%.*s\n", GLOBAL_ncolumns, grid + i * GLOBAL_ncolumns);
-	}
+void gridShow(char *grid){
+    if (!grid || GLOBAL_nlines == 0 || GLOBAL_ncolumns == 0){
+        return;
+    }
+    for (int i = 0; i < GLOBAL_nlines; i++){
+        fwrite(grid + i * GLOBAL_ncolumns, sizeof(char), GLOBAL_ncolumns, stdout);
+        putchar('\n');
+    }
 }
 
-int main(int argc, char **argv) {
+void slideHistory(char **history){
+    if (!history || GLOBAL_loopwindow < 2){
+        return;
+    }
+    char *temp_oldest_buffer = history[GLOBAL_loopwindow - 1];
+    for (int g = GLOBAL_loopwindow - 1; g > 0; g--){
+        history[g] = history[g - 1];
+    }
+    history[0] = temp_oldest_buffer;
+}
+
+int main(int argc, char **argv){
+    srand((unsigned int)time(NULL));
+
     unsigned int pattern = DEFAULT_PATTERN;
     unsigned int sleepTime = DEFAULT_SLEEP_TIME;
     unsigned int maxNumIters = DEFAULT_MAX_ITER;
-    
+    unsigned int density = DEFAULT_DENSITY;
+    GLOBAL_loopwindow = DEFAULT_LOOPWINDOW;
+
     int opt;
     int option_index = 0;
-    
+
     static struct option long_options[] = {
         {"pattern", required_argument, 0, 'p'},
         {"sleeptime", required_argument, 0, 's'},
         {"maxiterations", required_argument, 0, 'm'},
-        {0, 0, 0, 0}
-    };
-    
-    while ((opt = getopt_long(argc, argv, "p:s:m:", long_options, &option_index)) != -1) {
-        switch (opt) {
-            case 'p':
-                pattern = atoi(optarg);
-                if (pattern > 8) {
-                    fprintf(stderr, "Error: Pattern must be between 0 and 8.\n");
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case 's':
-                sleepTime = atoi(optarg);
-                if (sleepTime > 10000) {
-                    fprintf(stderr, "Error: Sleeptime must be between 0 and 10000 milliseconds.\n");
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case 'm':
-                maxNumIters = atoi(optarg);
-                if (maxNumIters == 0 || maxNumIters > 100000) {
-                    fprintf(stderr, "Error: Maximum iterations must be between 1 and 100000.\n");
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            default:
-                fprintf(stderr, "Usage: %s [--pattern <pattern>] [--sleeptime <ms>] [--maxiterations <n>]\n", argv[0]);
+        {"cols", required_argument, 0, 'c'},
+        {"rows", required_argument, 0, 'r'},
+        {"density", required_argument, 0, 'd'},
+        {"history", required_argument, 0, 'h'},
+        {0, 0, 0, 0}};
+
+    while ((opt = getopt_long(argc, argv, "p:s:m:c:r:d:h:", long_options, &option_index)) != -1){
+        switch (opt){
+        case 'p':
+            pattern = atoi(optarg);
+            if (pattern > 8){
+                fprintf(stderr, "Error: Pattern must be between 0 and 8.\n");
                 exit(EXIT_FAILURE);
+            }
+            break;
+        case 's':
+            sleepTime = atoi(optarg);
+            if (sleepTime > 10000){
+                fprintf(stderr, "Error: Sleeptime must be between 0 and 10000 milliseconds.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'm':
+            maxNumIters = atoi(optarg);
+            if (maxNumIters == 0 || maxNumIters > 100000){
+                fprintf(stderr, "Error: Maximum iterations must be between 1 and 100000.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'c':
+            GLOBAL_ncolumns = atoi(optarg);
+            printf("\n%d", GLOBAL_ncolumns);
+            if (GLOBAL_ncolumns == 0 || GLOBAL_ncolumns > 100){
+                fprintf(stderr, "Error: Number of columns must be between 1 and 100.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'r':
+            GLOBAL_nlines = atoi(optarg);
+            if (GLOBAL_nlines == 0 || GLOBAL_nlines > 50){
+                fprintf(stderr, "Error: Number of rows must be between 1 and 50.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'd':
+            density = atoi(optarg);
+            if (density == 0 || density > 9){
+                fprintf(stderr, "Error: Density must be between 1 and 9.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'h':
+            GLOBAL_loopwindow = atoi(optarg);
+            if (GLOBAL_loopwindow < 2 || GLOBAL_loopwindow > 100 || GLOBAL_loopwindow >= maxNumIters){
+                fprintf(stderr, "Error: History must be between 2 and 100 or between 2 and maxiterations.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        default:
+            fprintf(stderr, "Usage: %s [--pattern <pattern>] [--sleeptime <ms>] [--maxiterations <n>] [--cols <n>] [--rows <n>] [--density <n>] [--history <n>]\n", argv[0]);
+            exit(EXIT_FAILURE);
         }
     }
-    
-    if (optind < argc) {
-        fprintf(stderr, "Error: Unexpected argument: %s\n", argv[optind]);
-        fprintf(stderr, "Usage: %s [--pattern <pattern>] [--sleeptime <ms>] [--maxiterations <n>]\n", argv[0]);
+
+    if (GLOBAL_loopwindow >= maxNumIters){
+        fprintf(stderr, "Error: History window size (%u) must be less than max iterations (%u).\n", GLOBAL_loopwindow, maxNumIters);
         exit(EXIT_FAILURE);
     }
 
-    #ifdef __unix__
-        sleepTime *= 1000;
-    #endif
-
+    if (optind < argc){
+        fprintf(stderr, "Error: Unexpected argument: %s\n", argv[optind]);
+        fprintf(stderr, "Usage: %s [--pattern <pattern>] [--sleeptime <ms>] [--maxiterations <n>] [--cols <n>] [--rows <n>] [--density <n>] [--history <n>]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+#ifdef __unix__
+    sleepTime *= 1000;
+#endif
     defineDimensions(pattern);
-    GLOBAL_grid_A = (char*)malloc(GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char));
-    GLOBAL_grid_B = (char*)malloc(GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char));
-    if (!GLOBAL_grid_A || !GLOBAL_grid_B) {
+
+    history = malloc(GLOBAL_loopwindow * sizeof(char *));
+    if (!history){
         fprintf(stderr, "Error: Memory allocation failed.\n");
         exit(EXIT_FAILURE);
     }
-    gridInit(GLOBAL_grid_A, pattern);
-    
-    unsigned int niter = 0;
-    while (niter++ < maxNumIters) {
-        #ifdef _WIN32
-            Sleep(sleepTime);
-            system("cls");
-        #endif
-        #ifdef __unix__
-            usleep(sleepTime);
-            system("clear");
-        #endif
-        
-        gridShow(GLOBAL_grid_A);
-        gridEvolve(GLOBAL_grid_A, GLOBAL_grid_B);
-        if (gridCompare(GLOBAL_grid_A, GLOBAL_grid_B)) {
-            char *temp = GLOBAL_grid_A;
-            GLOBAL_grid_A = GLOBAL_grid_B;
-            GLOBAL_grid_B = temp;
-        } else {
-            break;
+    for (int i = 0; i < GLOBAL_loopwindow; i++){
+        history[i] = malloc(GLOBAL_ncolumns * GLOBAL_nlines * sizeof(char));
+        if (!history[i]){
+            fprintf(stderr, "Error: Memory allocation failed for history[%d].\n", i);
+            exit(EXIT_FAILURE);
         }
     }
-    
-    if (niter - 1 == maxNumIters) {
-        printf("\nFINISHED all iterations\n");
+    gridInit(history, pattern, density);
+#ifdef _WIN32
+    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    system("cls");
+#endif
+#ifdef __unix__
+    system("clear");
+#endif
+    fflush(stdout);
+    unsigned int niter = 0;
+    int loop_found = 0;
+    while (niter < maxNumIters){
+#ifdef _WIN32
+        Sleep(sleepTime);
+        SetConsoleCursorPosition(hConsole, cursorPos);
+#endif
+#ifdef __unix__
+        usleep(sleepTime);
+        printf("\033[H");
+#endif
+        fflush(stdout);
+        gridShow(history[1]);
+        printf("Iteration: %u / %u\n", niter + 1, maxNumIters);
+        gridEvolve(history[1], history[0]);
+        int loop_period = gridCompare(history);
+        if (loop_period > 0){
+            printf("\nLoop detected after %u iterations!\n", niter + 1);
+            printf("Loop Period: %d\n", loop_period);
+            loop_found = 1;
+            break;
+        }
+        slideHistory(history);
+        niter++;
     }
-    
-    free(GLOBAL_grid_A);
-    free(GLOBAL_grid_B);
+    if (!loop_found && niter == maxNumIters){
+        printf("\nMaximum iterations (%u) reached without detecting a loop (within history window %u).\n", maxNumIters, GLOBAL_loopwindow);
+    }
+    if (history){
+        for (int i = 0; i < GLOBAL_loopwindow; i++){
+            if (history[i]){
+                free(history[i]);
+            }
+        }
+        free(history);
+    }
     return 0;
 }
