@@ -8,7 +8,7 @@ The code is designed to be cross-platform, supporting both Windows and Unix-like
 Firstly clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/RuiPedroDev/CGameOfLife
+git clone https://github.com/RuiBorgesDev/CGameOfLife
 ```
 
 To compile the program, use a C compiler such as `gcc`. Open a terminal and navigate to the directory containing the source code file. Then, run the following command:
