@@ -218,8 +218,8 @@ int main(int argc, char **argv){
         case 'c':
             GLOBAL_ncolumns = atoi(optarg);
             printf("\n%d", GLOBAL_ncolumns);
-            if (GLOBAL_ncolumns == 0 || GLOBAL_ncolumns > 100){
-                fprintf(stderr, "Error: Number of columns must be between 1 and 100.\n");
+            if (GLOBAL_ncolumns == 0 || GLOBAL_ncolumns > 150){
+                fprintf(stderr, "Error: Number of columns must be between 1 and 150.\n");
                 exit(EXIT_FAILURE);
             }
             break;
