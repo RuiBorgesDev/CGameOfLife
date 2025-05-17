@@ -1,5 +1,7 @@
 # Game of Life in C
 
+![Demo of Game Of Life](demo.gif)
+
 This C program simulates Conway's Game of Life by mathematician John Conway. The Game of Life operates on a grid of cells, where each cell can be either alive or dead. The state of each cell evolves over time based on specific rules.
 The code is designed to be cross-platform, supporting both Windows and Unix-like systems.
 
