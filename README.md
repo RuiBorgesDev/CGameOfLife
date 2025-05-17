@@ -42,7 +42,7 @@ To run the program, execute the compiled executable and optionally pass command�
 
 - `--maxiterations (-m) <1–100000>` (optional): Specify the maximum number of iterations for the simulation. Default is 250.
 
-- `--cols (-c) <1–100>` (optional): Specify the number of columns for the simulation, only works on RANDOM pattern. Default depends on the pattern.
+- `--cols (-c) <1–150>` (optional): Specify the number of columns for the simulation, only works on RANDOM pattern. Default depends on the pattern.
 
 - `--rows (-r) <1-50>` (optional): Specify the number of rows for the simulation, only works on RANDOM pattern. Default depends on the pattern.
 
